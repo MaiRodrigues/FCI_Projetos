@@ -1,0 +1,154 @@
+###Importação de pacotes e dataframes
+
+install.packages("readr")
+install.packages("tidytuesdayR")
+
+library(readr)
+library(tidytuesdayR)
+library(dplyr)
+library(ggplot2)
+
+energy_types <- read.csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-08-04/energy_types.csv')
+country_totals <- read.csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-08-04/country_totals.csv')
+
+####Entendimento dos dados
+
+summary(energy_types) #gerar um resumo estatístico dos data frames energy_types
+summary(country_totals) #gerar um resumo estatístico dos data frames country_totals
+
+dim(energy_types) #retorna o número de linhas e colunas do df
+dim(country_totals) #retorna o número de linhas e colunas do df
+
+str(energy_types) #imprimir a estrutura do df 
+str(country_totals) #imprimir a estrutura do df
+
+###Tranformação dos dados
+
+# Utiliza o operador %>% para aplicar a função "mutate" ao dataframe "energy_types".
+energy_types <- energy_types %>% #A nova coluna "media_total" é calculada usando a função "rowMeans" e selecionando as colunas "X2016:X2018" do dataframe "energy_types".
+mutate(media_total = rowMeans(select(energy_types, X2016:X2018))) #A função "rowMeans" calcula a média de cada linha do dataframe "energy_types" para as colunas selecionadas (X2016:X2018) e armazena o resultado na nova coluna "media_total".
+
+# Utiliza o operador %>% para aplicar a função "mutate" ao dataframe "country_totals".
+country_totals <- country_totals %>% #A nova coluna "media_total" é calculada usando a função "rowMeans" e selecionando as colunas "X2016:X2018" do dataframe "country_totals".
+mutate(media_total = rowMeans(select(country_totals, X2016:X2018))) #A função "rowMeans" calcula a média de cada linha do dataframe "country_totals" para as colunas selecionadas (X2016:X2018) e armazena o resultado na nova coluna "media_total".
+
+#Utiliza a função "na.omit" para remover todas as linhas do dataframe "energy_types" e do dataframe "country_totals" que contenham valores ausentes (NA).
+energy_types <- na.omit(energy_types) 
+country_totals <- na.omit(country_totals)
+
+#Calcula o número de valores ausentes em cada coluna do dataframe "energy_types" e "country_totals" usando a função "colSums". Se a soma for maior que zero, significa que há valores ausentes na coluna. Caso contrário, a soma será igual a zero, indicando que não há valores ausentes na coluna após a remoção dos dados ausentes com a função "na.omit".
+colSums(is.na(energy_types))
+colSums(is.na(country_totals))
+
+country_totals$dif_anos <- country_totals$X2018 - country_totals$X2016 #Cria uma nova coluna "dif_anos" no dataframe "country_totals" que contém a diferença entre os valores da coluna "X2018" e "X2016" para cada linha do dataframe "country_totals".
+
+energy_types$media_norm <- scale(energy_types$media_total) #Utiliza a função "scale" para padronizar a coluna "media_total" do dataframe "energy_types"
+
+###Distribuição da produção de energia
+
+# Criando um histograma da média da produção de energia
+hist(energy_types$media_total, 
+     main = 'Media produção de energia',  # Adiciona um título ao gráfico
+     col = 'lightblue',  # Define a cor das barras do histograma
+     breaks = 8,  # Define o número de intervalos do histograma
+     xaxt = 'n'  # Remove o eixo x padrão para que possamos personalizá-lo depois
+)
+
+# Adicionando um eixo x personalizado ao gráfico
+axis(side = 1,  # Define a posição do eixo (1 = inferior)
+     at = seq(min(energy_types$media_total), max(energy_types$media_total), by = 100),  # Define os intervalos do eixo x
+     labels = seq(min(energy_types$media_total), max(energy_types$media_total), by = 100)  # Define os rótulos do eixo x
+)
+
+###Análise quantitativa
+
+barplot(country_totals[country_totals$type %in% c('Exports'),]$media_total, # A condição country_totals$type %in% c('Exports') seleciona apenas os países que têm dados de exportação de energia
+        names.arg=country_totals[country_totals$type %in% c('Exports'),]$country_name, # names.arg é o vetor com o nome dos países que serão exibidos no eixo y do gráfico
+        col='blue', # col define a cor das barras 
+        horiz= T, las=1, # horiz define a orientação horizontal das barras e las define a orientação dos rótulos no eixo y
+        main='Média de exportação de energia por país', # main é o título do gráfico
+        cex.names= 0.8) # cex.names define o tamanho do texto dos rótulos no eixo y
+
+# Cria um gráfico de pontos horizontais usando a função dotchart do R
+
+dotchart(country_totals[country_totals$type %in% c('Exports'),]$media_total, # A função usa a coluna media_total do dataframe country_totals, apenas para a categoria 'Exports'
+         label=country_totals[country_totals$type %in% c('Exports'),]$country_name, # A função usa a coluna country_name do dataframe country_totals, apenas para a categoria 'Exports'
+         col='blue', # Define a cor azul para os pontos
+         main='Média de exportação de energia por país', # Define o título do gráfico como 'Média de exportação de energia por país'
+         cex= 0.8) # Define o tamanho da fonte dos nomes dos países como 0.9
+
+# Cria um gráfico de barras horizontais para os países que têm dados de importação de energia
+barplot(country_totals[country_totals$type %in% c('Imports'),]$media_total, # A condição country_totals$type %in% c('Imports') seleciona apenas os países que têm dados de importação de energia
+        names.arg=country_totals[country_totals$type %in% c('Imports'),]$country_name, # names.arg é o vetor com o nome dos países que serão exibidos no eixo y do gráfico
+        col='blue', # col define a cor das barras 
+        horiz= T, las=1, # horiz define a orientação horizontal das barras e las define a orientação dos rótulos no eixo y
+        main='Média de importação de energia por país', # main é o título do gráfico
+        cex.names= 0.8) # cex.names define o tamanho do texto dos rótulos no eixo y
+
+# Cria um gráfico de pontos horizontais usando a função dotchart do R
+dotchart(country_totals[country_totals$type %in% c('Imports'),]$media_total, # A função usa a coluna media_total do dataframe country_totals, apenas para a categoria 'Imports'
+         label=country_totals[country_totals$type %in% c('Imports'),]$country_name, # A função usa a coluna country_name do dataframe country_totals, apenas para a categoria 'Imports'
+         col='blue', # Define a cor azul para os pontos
+         main='Média de importação de energia por país', # Define o título do gráfico como 'Média de importação de energia por país'
+         cex= 0.8) # Define o tamanho da fonte dos nomes dos países como 0.9
+
+media <- aggregate(energy_types[, c("media_total")], by = list(energy_types$type), FUN = mean) # Agrupando as colunas por tipo de energia e tirando a média
+
+colnames(media) <- c("tipos de energia", "media produção") # Renomeando as colunas do objeto media
+
+# Criando um gráfico de barras com as médias de produção por tipo de energia
+barplot(
+  media$`media produção`, # Selecionando as médias de produção para cada tipo de energia
+  names.arg = media$`tipos de energia`, # Definindo os rótulos do eixo x
+  xlab = "Tipos de energia", # Definindo o rótulo do eixo x
+  ylab = "Média de produção", # Definindo o rótulo do eixo y
+  las = 2 # Rotacionando os rótulos do eixo x em 90 graus
+)
+
+###Análise de correlação
+
+energ_renovavel <- subset(energy_types, type == "Geothermal" | type == "Hydro" | type == "Solar" | type == "Hydro" | type == "Wind", c('media_norm') ) #Cria um novo dataframe "energ_renovavel" com uma seleção das linhas do dataframe "energy_types" em que o valor da coluna "type" é igual a "Geothermal", "Hydro", "Solar", 
+names(energ_renovavel)[1] <- "renovavel" #Apenas a coluna "media_norm" é mantida no novo dataframe "energ_renovavel" e a primeira coluna do dataframe "energ_renovavel" é renomeada para "renovavel".
+energ_n_renovavel <- subset(energy_types, type == "Conventional thermal" | type == "Nuclear" | type == "Pumped hydro power" | type == "Other", c('media_norm') ) #Cria um novo dataframe "energ_n_renovavel" com uma seleção das linhas do dataframe "energy_types" em que o valor da coluna "type" é igual a "Conventional thermal", "Nuclear", "Pumped hydro power" ou "Other".
+names(energ_n_renovavel)[1] <- "n_renovavel" # Apenas a coluna "media_norm" é mantida no novo dataframe "energ_n_renovavel" e a primeira coluna do dataframe "energ_n_renovavel" é renomeada para "n_renovavel".
+
+df_concatenado <- cbind(energ_renovavel, energ_n_renovavel) #O novo dataframe "energ_renovavel" e o novo dataframe "energ_n_renovavel" são combinados em um único dataframe chamado "df_concatenado" utilizando a função "cbind", onde a primeira coluna é "renovavel" e a segunda coluna é "n_renovavel".
+
+#Utiliza a função "cor" para calcular a correlação entre duas colunas do dataframe "df_concatenado", a coluna "renovavel" e a coluna "n_renovavel".
+cor(df_concatenado$renovavel, df_concatenado$n_renovavel)
+
+###Análise do atributo derivado
+
+absorbed <- subset(country_totals, type == "Energy absorbed by pumping", c('country_name','dif_anos') ) # um subconjunto da tabela country_totals é criado com apenas as linhas que contêm o tipo "Energy absorbed by pumping" na coluna "type" e apenas as colunas "country_name" e "dif_anos".
+
+increased <- subset(absorbed, dif_anos > 0 , c('country_name','dif_anos') ) #um novo subconjunto da tabela absorbed é criado com apenas as linhas que têm um valor positivo na coluna "dif_anos", ou seja, os países onde a absorção de energia por bombeamento aumentou nos últimos anos. 
+increased <- increased[order(increased$dif_anos), ] #linhas ordenadas de acordo com o valor crescente de "dif_anos" 
+colnames(increased) <- c("regrediram ", "aumento_na_absorção") #colunas renomeadas para "regrediram" e "aumento_na_absorção".
+
+
+decreased <- subset(absorbed, dif_anos < 0, c('country_name','dif_anos') ) # subconjunto da tabela absorbed é criado com apenas as linhas que têm um valor negativo na coluna "dif_anos", ou seja, os países onde a absorção de energia por bombeamento diminuiu nos últimos anos.
+decreased <- decreased[order(decreased$dif_anos), ] #linhas ordenadas de acordo com o valor crescente de "dif_anos" 
+colnames(decreased) <- c("progrediram", "redução_na_absorção") #colunas são renomeadas para "progrediram" e "redução_na_absorção".
+
+increased
+decreased
+
+###Análise de evolução
+
+#Utiliza a função "subset" para criar dois novos dataframes: "energ_renovavel" e "energ_n_renovavel", a partir do dataframe "energy_types". O primeiro é criado selecionando as linhas cujo tipo de energia é "Geothermal", "Hydro", "Solar", ou "Wind", e as colunas correspondentes aos anos de 2016, 2017 e 2018.
+energ_renovavel <- subset(energy_types, type == "Geothermal" | type == "Hydro" | type == "Solar" | type == "Hydro" | type == "Wind", c('X2016','X2017','X2018') )
+#O segundo dataframe é criado selecionando as linhas cujo tipo de energia é "Conventional thermal", "Nuclear", "Pumped hydro power", ou "Other", e as mesmas colunas de anos.
+energ_n_renovavel <- subset(energy_types, type == "Conventional thermal" | type == "Nuclear" | type == "Pumped hydro power" | type == "Other", c('X2016','X2017','X2018') )
+#Cria um novo dataframe "media_energ_renovav", que contém duas colunas: "ano" (que armazena os anos 2016, 2017 e 2018) e "media" (que armazena as médias dos valores de energia renovável para cada ano, calculados a partir do dataframe "energ_renovavel").
+media_energ_renovav <- data.frame(ano = c(2016, 2017, 2018),
+media = c(mean(energ_renovavel$X2016), mean(energ_renovavel$X2017), mean(energ_renovavel$X2018)))
+#Cria um novo dataframe "media_energ", que contém três colunas: "ano" (que armazena os anos 2016, 2017 e 2018), "media_energ_renovav" (que armazena as médias dos valores de energia renovável para cada ano, obtidas a partir do dataframe "media_energ_renovav"), 
+media_energ <- data.frame(ano = c(2016, 2017, 2018), media_energ_renovav = media_energ_renovav$media,
+#e "media_energ_n_renovav" (que armazena as médias dos valores de energia não renovável para cada ano, calculados a partir do dataframe "energ_n_renovavel"). Note que o valor de "media_energ_renovav" é obtido do dataframe criado anteriormente.
+media_energ_n_renovav = c(mean(energ_n_renovavel$X2016), mean(energ_n_renovavel$X2017), mean(energ_n_renovavel$X2018)))
+
+plot(media_energ_renovav$ano, media_energ_renovav$media, #plot() é uma função para plotar gráficos em R. media_energ_renovav$ano e media_energ_renovav$media são as variáveis a serem plotadas no gráfico.
+type = 'l', #define o tipo de gráfico como uma linha.
+ main= 'Aumento energia renovável', #define o título do gráfico como 'titulo'.
+ col='green' #define a cor da linha como verde.
+ )
